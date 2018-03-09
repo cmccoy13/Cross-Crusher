@@ -22,29 +22,26 @@ using namespace std;
 using namespace glm;
 
 shared_ptr<Shape> shape;
-static float xVel1 = 0.001;
-static float yVel1 = 0.001;
+float ballSpeed = 0.2;
+static float xVel1 = ballSpeed;
+static float yVel1 = ballSpeed;
 static float xBall1 = 0.0;
 static float yBall1 = 0.34;
 
-
-static float xVel2 = -0.001;
-static float yVel2 = 0.001;
+static float xVel2 = -ballSpeed;
+static float yVel2 = ballSpeed;
 static float xBall2 = -0.34;
 static float yBall2 = 0.0;
 
-
-static float xVel3 = -0.001;
-static float yVel3 = -0.001;
+static float xVel3 = -ballSpeed;
+static float yVel3 = -ballSpeed;
 static float xBall3 = 0.0;
 static float yBall3 = -0.34;
 
-
-static float xVel4 = 0.001;
-static float yVel4 = -0.001;
+static float xVel4 = ballSpeed;
+static float yVel4 = -ballSpeed;
 static float xBall4 = 0.34;
 static float yBall4 = 0.0;
-
 
 vec4 ball1 = vec4(xVel1, yVel1, xBall1, yBall1);
 vec4 ball2 = vec4(xVel2, yVel2, xBall2, yBall2);
@@ -53,6 +50,14 @@ vec4 ball4 = vec4(xVel4, yVel4, xBall4, yBall4);
 
 std::vector<vec4> balls;
 
+double get_last_elapsed_time()
+{
+	static double lasttime = glfwGetTime();
+	double actualtime = glfwGetTime();
+	double difference = actualtime - lasttime;
+	lasttime = actualtime;
+	return difference;
+}
 
 class Controls
 {
@@ -580,112 +585,115 @@ public:
 		floorProg->unbind();
 	}
 
-	void processCollisions(float upad, float dpad, float lpad, float rpad)
+	void processCollisions(float upad, float dpad, float lpad, float rpad, double frametime, float frameCounter)
 	{
 		for (int i = 0; i < 4; i++)
 		{
-			balls[i][2] += balls[i][0];
-			balls[i][3] += balls[i][1];
-
-			//TOP SECTION
-			if (balls[i][3] > 0.31)
+			if (frameCounter >= i)
 			{
-				if (balls[i][2] > 0.28)
-				{
-					balls[i][0] *= -1;
-				}
-				else if (balls[i][2] < -0.28)
-				{
-					balls[i][0] *= -1;
-				}
-				if (balls[i][3] > 1.03)
-				{
-					balls[i][1] *= -1;
-				}
+				balls[i][2] += balls[i][0] * frametime;
+				balls[i][3] += balls[i][1] * frametime;
 
-				//PADDLE
-				if (balls[i][3] < 0.33)
+				//TOP SECTION
+				if (balls[i][3] > 0.31)
 				{
-					if (balls[i][2] < upad + .1  && balls[i][2] > upad - .1)
-					{
-						balls[i][1] *= -1;
-					}
-				}
-			}
-
-			//BOT SECTION
-			else if (balls[i][3] < -0.31)
-			{
-				if (balls[i][2] > 0.28)
-				{
-					balls[i][0] *= -1;
-				}
-				else if (balls[i][2] < -0.28)
-				{
-					balls[i][0] *= -1;
-				}
-				if (balls[i][3] < -1.03)
-				{
-					balls[i][1] *= -1;
-				}
-
-				//PADDLE
-				if (balls[i][3] > -0.33)
-				{
-					if (balls[i][2] < dpad + .1  && balls[i][2] > dpad - .1)
-					{
-						balls[i][1] *= -1;
-					}
-				}
-			}
-
-			//LEFT SECTION
-			else if (balls[i][2] < -0.31)
-			{
-				if (balls[i][3] > 0.28)
-				{
-					balls[i][1] *= -1;
-				}
-				else if (balls[i][3] < -0.28)
-				{
-					balls[i][1] *= -1;
-				}
-				if (balls[i][2] < -1.03)
-				{
-					balls[i][0] *= -1;
-				}
-
-				//PADDLE
-				if (balls[i][2] > -0.33)
-				{
-					if (balls[i][3] < lpad + .1  && balls[i][3] > lpad - .1)
+					if (balls[i][2] > 0.28)
 					{
 						balls[i][0] *= -1;
 					}
-				}
-			}
-
-			//RIGHT SECTION
-			else if (balls[i][2] > 0.31)
-			{
-				if (balls[i][3] > 0.28)
-				{
-					balls[i][1] *= -1;
-				}
-				else if (balls[i][3] < -0.28)
-				{
-					balls[i][1] *= -1;
-				}
-				if (balls[i][2] > 1.03)
-				{
-					balls[i][0] *= -1;
-				}
-
-				if (balls[i][2] < 0.33)
-				{
-					if (balls[i][3] < rpad + .1  && balls[i][3] > rpad - .1)
+					else if (balls[i][2] < -0.28)
 					{
 						balls[i][0] *= -1;
+					}
+					if (balls[i][3] > 1.03)
+					{
+						balls[i][1] *= -1;
+					}
+
+					//PADDLE
+					if (balls[i][3] < 0.33)
+					{
+						if (balls[i][2] < upad + .1  && balls[i][2] > upad - .1)
+						{
+							balls[i][1] *= -1;
+						}
+					}
+				}
+
+				//BOT SECTION
+				else if (balls[i][3] < -0.31)
+				{
+					if (balls[i][2] > 0.28)
+					{
+						balls[i][0] *= -1;
+					}
+					else if (balls[i][2] < -0.28)
+					{
+						balls[i][0] *= -1;
+					}
+					if (balls[i][3] < -1.03)
+					{
+						balls[i][1] *= -1;
+					}
+
+					//PADDLE
+					if (balls[i][3] > -0.33)
+					{
+						if (balls[i][2] < dpad + .1  && balls[i][2] > dpad - .1)
+						{
+							balls[i][1] *= -1;
+						}
+					}
+				}
+
+				//LEFT SECTION
+				else if (balls[i][2] < -0.31)
+				{
+					if (balls[i][3] > 0.28)
+					{
+						balls[i][1] *= -1;
+					}
+					else if (balls[i][3] < -0.28)
+					{
+						balls[i][1] *= -1;
+					}
+					if (balls[i][2] < -1.03)
+					{
+						balls[i][0] *= -1;
+					}
+
+					//PADDLE
+					if (balls[i][2] > -0.33)
+					{
+						if (balls[i][3] < lpad + .1  && balls[i][3] > lpad - .1)
+						{
+							balls[i][0] *= -1;
+						}
+					}
+				}
+
+				//RIGHT SECTION
+				else if (balls[i][2] > 0.31)
+				{
+					if (balls[i][3] > 0.28)
+					{
+						balls[i][1] *= -1;
+					}
+					else if (balls[i][3] < -0.28)
+					{
+						balls[i][1] *= -1;
+					}
+					if (balls[i][2] > 1.03)
+					{
+						balls[i][0] *= -1;
+					}
+
+					if (balls[i][2] < 0.33)
+					{
+						if (balls[i][3] < rpad + .1  && balls[i][3] > rpad - .1)
+						{
+							balls[i][0] *= -1;
+						}
 					}
 				}
 			}
@@ -694,6 +702,10 @@ public:
 
 	void render()
 	{
+		double frametime = get_last_elapsed_time();
+		static float frameCounter;
+		frameCounter += .0005;
+
 		// Get current frame buffer size.
 		int width, height;
 		glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
@@ -723,55 +735,55 @@ public:
 		static float rpad = 0.0;
 		static float upad = 0.0;
 		static float dpad = 0.0;
-		float paddleSpeed = 0.004;
+		float paddleSpeed = 0.5;
 		float paddleDist = 0.2;
 
 		if (controls.up == 1)
 		{
 			if (controls.a == 1 && upad > -paddleDist)
 			{
-				upad -= paddleSpeed;
+				upad -= frametime*paddleSpeed;
 			}
 			if (controls.d == 1 && upad < paddleDist)
 			{
-				upad += paddleSpeed;
+				upad += frametime*paddleSpeed;
 			}
 		}
 		if (controls.down == 1)
 		{
 			if (controls.a == 1 && dpad > -paddleDist)
 			{
-				dpad -= paddleSpeed;
+				dpad -= frametime*paddleSpeed;
 			}
 			if (controls.d == 1 && dpad < paddleDist)
 			{
-				dpad += paddleSpeed;
+				dpad += frametime*paddleSpeed;
 			}
 		}
 		if (controls.left == 1)
 		{
 			if (controls.w == 1 && lpad < paddleDist)
 			{
-				lpad += paddleSpeed;
+				lpad += frametime*paddleSpeed;
 			}
 			if (controls.s == 1 && lpad > -paddleDist)
 			{
-				lpad -= paddleSpeed;
+				lpad -= frametime*paddleSpeed;
 			}
 		}
 		if (controls.right == 1)
 		{
 			if (controls.w == 1 && rpad < paddleDist)
 			{
-				rpad += paddleSpeed;
+				rpad += frametime*paddleSpeed;
 			}
 			if (controls.s == 1 && rpad > -paddleDist)
 			{
-				rpad -= paddleSpeed;
+				rpad -= frametime*paddleSpeed;
 			}
 		}
 
-		processCollisions(upad, dpad, lpad, rpad);
+		processCollisions(upad, dpad, lpad, rpad, frametime, frameCounter);
 		
 
 		w = 3.141592769 / 2;
@@ -837,32 +849,34 @@ public:
 		//BRICKS
 		Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.10f, 0.04f, 0.05f));
 
+		int spawnOffset = floor(frameCounter*3);
+
 		for (int i = 0; i < 6; i++)
 		{
-			for (int j = 0; j < 5; j++)
+			for (int j = 0; j < 5 + spawnOffset; j++) //j = 14 is max
 			{
 				//TOP
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), 0.75f + (.045*j), 0.0f));
+				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), (0.75f + (.045*j)) - 0.045*spawnOffset, 0.0f));
 				M = Trans*Scale;
 				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
 
 				//BOTTOM
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), -0.75f - (.045*j), 0.0f));
+				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), -0.75f - (.045*j) + 0.045*spawnOffset, 0.0f));
 				M = Trans*Scale;
 				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
 
 				//LEFT
 				Rotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 0.0f, 1.0f));
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-.75f - (0.045*j), -.25f + (.1*i), 0.0f));				
+				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-.75f - (0.045*j) + 0.045*spawnOffset, -.25f + (.1*i), 0.0f));
 				M = Trans*Rotate*Scale;
 				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
 
 				//RIGHT
 				Rotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 0.0f, 1.0f));
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(.75f + (0.045*j), .25f - (.1*i), 0.0f));
+				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(.75f + (0.045*j) - 0.045*spawnOffset, .25f - (.1*i), 0.0f));
 				M = Trans*Rotate*Scale;
 				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
@@ -887,23 +901,32 @@ public:
 		glUniformMatrix4fv(ballProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		shape->draw(ballProg);
 
-		Trans = glm::translate(glm::mat4(1.0f), glm::vec3(balls[1][2], balls[1][3], 0.0f));
-		Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-		M = Trans * Scale;
-		glUniformMatrix4fv(ballProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		shape->draw(ballProg);
+		if (frameCounter > 0.8)
+		{
+			Trans = glm::translate(glm::mat4(1.0f), glm::vec3(balls[1][2], balls[1][3], 0.0f));
+			Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+			M = Trans * Scale;
+			glUniformMatrix4fv(ballProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+			shape->draw(ballProg);
+		}
 
-		Trans = glm::translate(glm::mat4(1.0f), glm::vec3(balls[2][2], balls[2][3], 0.0f));
-		Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-		M = Trans * Scale;
-		glUniformMatrix4fv(ballProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		shape->draw(ballProg);
+		if (frameCounter > 1.8)
+		{
+			Trans = glm::translate(glm::mat4(1.0f), glm::vec3(balls[2][2], balls[2][3], 0.0f));
+			Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+			M = Trans * Scale;
+			glUniformMatrix4fv(ballProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+			shape->draw(ballProg);
+		}
 
-		Trans = glm::translate(glm::mat4(1.0f), glm::vec3(balls[3][2], balls[3][3], 0.0f));
-		Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-		M = Trans * Scale;
-		glUniformMatrix4fv(ballProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		shape->draw(ballProg);
+		if (frameCounter > 2.8)
+		{
+			Trans = glm::translate(glm::mat4(1.0f), glm::vec3(balls[3][2], balls[3][3], 0.0f));
+			Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+			M = Trans * Scale;
+			glUniformMatrix4fv(ballProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+			shape->draw(ballProg);
+		}
 
 		ballProg->unbind();
 
