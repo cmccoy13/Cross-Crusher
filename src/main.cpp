@@ -22,7 +22,7 @@ using namespace std;
 using namespace glm;
 
 shared_ptr<Shape> shape;
-float ballSpeed = 0.2;
+float ballSpeed = 0.15;
 static float xVel1 = ballSpeed;
 static float yVel1 = ballSpeed;
 static float xBall1 = 0.0;
@@ -49,6 +49,11 @@ vec4 ball3 = vec4(xVel3, yVel3, xBall3, yBall3);
 vec4 ball4 = vec4(xVel4, yVel4, xBall4, yBall4);
 
 std::vector<vec4> balls;
+
+static bool uBricks[14][6];
+static bool dBricks[14][6];
+static bool lBricks[14][6];
+static bool rBricks[14][6];
 
 double get_last_elapsed_time()
 {
@@ -91,7 +96,7 @@ void Matrix::createIdentityMatrix()
 		for (int j = 0; j < 4; j++)
 		{
 			data[i][j] = 0.0;
-		}		
+		}
 	}
 
 	data[0][0] = 1.0;
@@ -284,11 +289,34 @@ public:
 		shape->init();
 		//END SPHERE
 
+		//Initialize balls vector
 		balls.push_back(ball1);
 		balls.push_back(ball2);
 		balls.push_back(ball3);
 		balls.push_back(ball4);
 
+		//Initialize brick locations
+		for (int i = 0; i < 14; i++)
+		{
+			for (int j = 0; j < 6; j++)
+			{
+				if (i < 5)
+				{
+					uBricks[i][j] = true;
+					dBricks[i][j] = true;
+					lBricks[i][j] = true;
+					rBricks[i][j] = true;
+				}
+				else
+				{
+					uBricks[i][j] = false;
+					dBricks[i][j] = false;
+					lBricks[i][j] = false;
+					rBricks[i][j] = false;
+				}
+
+			}
+		}
 
 		//generate the VAO
 		glGenVertexArrays(1, &VertexArrayID);
@@ -320,7 +348,7 @@ public:
 		//we need to set up the vertex array
 		glEnableVertexAttribArray(0);
 		//key function to get up how many elements to pull out at a time (3)
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*) 0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		//color
 		GLfloat cube_colors[] = {
@@ -594,19 +622,42 @@ public:
 				balls[i][2] += balls[i][0] * frametime;
 				balls[i][3] += balls[i][1] * frametime;
 
+				/* FOR TESTING, ASDF MOVES BALL 
+				if (controls.a == 1)
+				{
+					balls[i][2] -= balls[i][0] * frametime;
+				}
+				if (controls.d == 1)
+				{
+					balls[i][2] += balls[i][0] * frametime;
+				}
+				if (controls.w == 1)
+				{
+					balls[i][3] += balls[i][1] * frametime;
+				}
+				if (controls.s == 1)
+				{
+					balls[i][3] -= balls[i][1] * frametime;
+				}
+				*/
+
 				//TOP SECTION
 				if (balls[i][3] > 0.31)
 				{
+					//COURT
 					if (balls[i][2] > 0.28)
 					{
+						balls[i][2] = 0.28;
 						balls[i][0] *= -1;
 					}
 					else if (balls[i][2] < -0.28)
 					{
+						balls[i][2] = -0.28;
 						balls[i][0] *= -1;
 					}
 					if (balls[i][3] > 1.03)
 					{
+						balls[i][3] = 1.03;
 						balls[i][1] *= -1;
 					}
 
@@ -616,6 +667,50 @@ public:
 						if (balls[i][2] < upad + .1  && balls[i][2] > upad - .1)
 						{
 							balls[i][1] *= -1;
+							balls[i][3] = 0.33;
+							balls[i][0] += (balls[i][2] - upad)*4;
+							balls[i][0] = clamp(balls[i][0], -2 * ballSpeed, 2 * ballSpeed);
+						}
+					}
+
+					//BRICKS
+					for (int row = 0; row < 14; row++)
+					{
+						for (int col = 0; col < 6; col++)
+						{
+							if (uBricks[row][col] == true)
+							{
+								float top = .97 - 0.045*row;  //top of original spawn (bot layer) is .79, add .5 for each row
+								float bot = top - 0.08;  //top -0.08
+								float left = -0.32 + .1*col; //LEFT begins at -0.32, add .1 for each iteration.
+								float right = left + .14; //RIGHT is left +.14
+
+								if (balls[i][3] > bot && balls[i][3] < top && balls[i][2] < right && balls[i][2] > left) //HITTING THE BRICK
+								{
+									if (balls[i][3] < bot + .01) //Hits bottom
+									{
+										balls[i][3] -= frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][3] > top - .01) //Hits top
+									{
+										balls[i][3] += frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][2] > right - .01) //Hits right
+									{
+										balls[i][2] += frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+									if (balls[i][2] < left + .01) //Hits left
+									{
+										balls[i][2] -= frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+
+									uBricks[row][col] = false;
+								}
+							}
 						}
 					}
 				}
@@ -625,23 +720,70 @@ public:
 				{
 					if (balls[i][2] > 0.28)
 					{
+						balls[i][2] = 0.28;
 						balls[i][0] *= -1;
 					}
 					else if (balls[i][2] < -0.28)
 					{
+						balls[i][2] = -0.28;
 						balls[i][0] *= -1;
 					}
 					if (balls[i][3] < -1.03)
 					{
+						balls[i][3] = -1.03;
 						balls[i][1] *= -1;
 					}
 
 					//PADDLE
-					if (balls[i][3] > -0.33)
+					if (balls[i][3] > -0.33 && balls[i][3] < -0.3)
 					{
 						if (balls[i][2] < dpad + .1  && balls[i][2] > dpad - .1)
 						{
 							balls[i][1] *= -1;
+							balls[i][3] = -0.33;
+							balls[i][0] += (balls[i][2] - dpad) * 4;
+							balls[i][0] = clamp(balls[i][0], -2 * ballSpeed, 2 * ballSpeed);
+						}
+					}
+
+					//BRICKS
+					for (int row = 0; row < 14; row++)
+					{
+						for (int col = 0; col < 6; col++)
+						{
+							if (dBricks[row][col] == true)
+							{
+								float bot = -.97 + 0.045*row;  //top of original spawn (bot layer) is .79, add .5 for each row
+								float top = bot + 0.08;  //top -0.08
+								float left = -0.32 + .1*col; //LEFT begins at -0.32, add .1 for each iteration.
+								float right = left + .14; //RIGHT is left +.14
+
+								if (balls[i][3] > bot && balls[i][3] < top && balls[i][2] < right && balls[i][2] > left) //HITTING THE BRICK
+								{
+									if (balls[i][3] < bot + .01) //Hits bottom
+									{
+										balls[i][3] -= frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][3] > top - .01) //Hits top
+									{
+										balls[i][3] += frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][2] > right - .01) //Hits right
+									{
+										balls[i][2] += frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+									if (balls[i][2] < left + .01) //Hits left
+									{
+										balls[i][2] -= frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+
+									dBricks[row][col] = false;
+								}
+							}
 						}
 					}
 				}
@@ -651,14 +793,17 @@ public:
 				{
 					if (balls[i][3] > 0.28)
 					{
+						balls[i][3] = 0.28;
 						balls[i][1] *= -1;
 					}
 					else if (balls[i][3] < -0.28)
 					{
+						balls[i][3] = -0.28;
 						balls[i][1] *= -1;
 					}
 					if (balls[i][2] < -1.03)
 					{
+						balls[i][2] = -1.03;
 						balls[i][0] *= -1;
 					}
 
@@ -668,6 +813,50 @@ public:
 						if (balls[i][3] < lpad + .1  && balls[i][3] > lpad - .1)
 						{
 							balls[i][0] *= -1;
+							balls[i][2] = -0.33;
+							balls[i][1] += 4 * (balls[i][3] - lpad);
+							balls[i][1] = clamp(balls[i][1], -2 * ballSpeed, 2 * ballSpeed);
+						}
+					}
+
+					//BRICKS
+					for (int row = 0; row < 14; row++)
+					{
+						for (int col = 0; col < 6; col++)
+						{
+							if (lBricks[row][col] == true)
+							{
+								float top = -.97 + 0.045*row;  
+								float bot = top + 0.08;  
+								float left = -0.32 + .1*col; 
+								float right = left + .14; 
+
+								if (balls[i][3] > left && balls[i][3] < right && balls[i][2] < bot && balls[i][2] > top) //HITTING THE BRICK
+								{
+									if (balls[i][3] < left + .01) 
+									{
+										balls[i][3] -= frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][3] > right - .01) 
+									{
+										balls[i][3] += frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][2] < top + .01) 
+									{
+										balls[i][2] += frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+									if (balls[i][2] > bot - .01)
+									{
+										balls[i][2] -= frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+
+									lBricks[row][col] = false;
+								}
+							}
 						}
 					}
 				}
@@ -677,22 +866,115 @@ public:
 				{
 					if (balls[i][3] > 0.28)
 					{
+						balls[i][3] = 0.28;
 						balls[i][1] *= -1;
 					}
 					else if (balls[i][3] < -0.28)
 					{
+						balls[i][3] = -0.28;
 						balls[i][1] *= -1;
 					}
 					if (balls[i][2] > 1.03)
 					{
+						balls[i][2] = 1.03;
 						balls[i][0] *= -1;
 					}
 
+					//PADDLE
 					if (balls[i][2] < 0.33)
 					{
 						if (balls[i][3] < rpad + .1  && balls[i][3] > rpad - .1)
 						{
 							balls[i][0] *= -1;
+							balls[i][2] = 0.33;
+							balls[i][1] += 4 * (balls[i][3] - rpad);
+							balls[i][1] = clamp(balls[i][1], -2 * ballSpeed, 2 * ballSpeed);
+						}
+					}
+
+					//BRICKS
+					for (int row = 0; row < 14; row++)
+					{
+						for (int col = 0; col < 6; col++)
+						{
+							if (rBricks[row][col] == true)
+							{
+								float top = .97 - 0.045*row;  
+								float bot = top - 0.08;
+								float left = 0.32 - .1*col;
+								float right = left - .14;
+
+								if (balls[i][3] < left && balls[i][3] > right && balls[i][2] > bot && balls[i][2] < top) //HITTING THE BRICK
+								{
+									if (balls[i][3] > left - .01)
+									{
+										balls[i][3] += frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][3] < right + .01)
+									{
+										balls[i][3] -= frametime*balls[i][1];
+										balls[i][1] *= -1;
+									}
+									if (balls[i][2] > top - .01)
+									{
+										balls[i][2] += frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+									if (balls[i][2] < bot + .01)
+									{
+										balls[i][2] -= frametime*balls[i][0];
+										balls[i][0] *= -1;
+									}
+
+									rBricks[row][col] = false;
+								}
+							}
+						}
+					}
+				}
+
+				//MIDDLE SECTION PADDLES
+				else
+				{
+					if (balls[i][3] > 0.27) //Top Paddle
+					{
+						if (balls[i][2] < upad + .1  && balls[i][2] > upad - .1)
+						{
+							balls[i][1] *= -1;
+							balls[i][3] = 0.27;
+							balls[i][0] += (balls[i][2] - upad) * 4;
+							balls[i][0] = clamp(balls[i][0], -2 * ballSpeed, 2 * ballSpeed);
+						}
+					}
+					else if (balls[i][3] < -0.27) //Bot Paddle
+					{
+						if (balls[i][2] < dpad + .1  && balls[i][2] > dpad - .1)
+						{
+							balls[i][1] *= -1;
+							balls[i][3] = -0.27;
+							balls[i][0] += (balls[i][2] - dpad) * 4;
+							balls[i][0] = clamp(balls[i][0], -2 * ballSpeed, 2 * ballSpeed);
+						}
+					}
+					if (balls[i][2] < -0.27) //Left Paddle
+					{
+						if (balls[i][3] < lpad + .1  && balls[i][3] > lpad - .1)
+						{
+							balls[i][0] *= -1;
+							balls[i][2] = -0.27;
+							balls[i][1] += 4 * (balls[i][3] - lpad);
+							balls[i][1] = clamp(balls[i][1], -2 * ballSpeed, 2 * ballSpeed);
+						}
+					}
+					else if (balls[i][2] > 0.27) //Right Paddle
+					{
+						if (balls[i][3] < rpad + .1  && balls[i][3] > rpad - .1)
+						{
+							balls[i][0] *= -1;
+							balls[i][2] = 0.27;
+							balls[i][1] += 4 * (balls[i][3] - rpad);
+							balls[i][1] = clamp(balls[i][1], -2 * ballSpeed, 2 * ballSpeed);
 						}
 					}
 				}
@@ -700,42 +982,70 @@ public:
 		}
 	}
 
+	bool addBricks(bool bricks[][6])
+	{
+		for (int j = 0; j < 6; j++) //Check to find any bricks in bottom row
+		{
+			if (bricks[13][j] == true)
+			{
+				return false;
+			}
+		}
+
+		for (int i = 13; i > 0; i--)
+		{
+			for (int j = 0; j < 6; j++)
+			{
+				bricks[i][j] = bricks[i - 1][j];
+			}
+		}
+
+		for (int j = 0; j < 6; j++)
+		{
+			bricks[0][j] = true;
+		}
+
+		return true;
+	}
+
 	void render()
 	{
 		double frametime = get_last_elapsed_time();
-		static float frameCounter;
-		frameCounter += .0005;
+		static float frameCounter = 0.0;
+		static float spawnCounter = 0.0;
+		static int numSpawns = 0;
+		frameCounter += .0004;
+		spawnCounter += .0004;
 
 		// Get current frame buffer size.
 		int width, height;
 		glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-		float aspect = width/(float)height;
+		float aspect = width / (float)height;
 		glViewport(0, 0, width, height);
 
 		// Clear framebuffer.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Create the matrix stacks - please leave these alone for now
-		
+
 		glm::mat4 V, M, P; //View, Model and Perspective matrix
 		V = glm::mat4(1);
 		M = glm::mat4(1);
 		// Apply orthographic projection....
-		P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);		
+		P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);
 		if (width < height)
-			{
-			P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect,  1.0f / aspect, -2.0f, 100.0f);
-			}
+		{
+			P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect, 1.0f / aspect, -2.0f, 100.0f);
+		}
 		// ...but we overwrite it (optional) with a perspective projection.
-		P = glm::perspective((float)(3.14159 / 4.), (float)((float)width/ (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
+		P = glm::perspective((float)(3.14159 / 4.), (float)((float)width / (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
 
-		//animation with the model matrix:
 		static float w = 0.0;
 		static float lpad = 0.0;
 		static float rpad = 0.0;
 		static float upad = 0.0;
 		static float dpad = 0.0;
-		float paddleSpeed = 0.5;
+		float paddleSpeed = 0.6;
 		float paddleDist = 0.2;
 
 		if (controls.up == 1)
@@ -784,7 +1094,7 @@ public:
 		}
 
 		processCollisions(upad, dpad, lpad, rpad, frametime, frameCounter);
-		
+
 
 		w = 3.141592769 / 2;
 
@@ -796,7 +1106,7 @@ public:
 		V = TransView*V;
 
 
-		drawCourt(P, V, M);	
+		drawCourt(P, V, M);
 
 
 
@@ -815,7 +1125,7 @@ public:
 		glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
 		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
-		
+
 		//Bot
 		Trans = glm::translate(glm::mat4(1.0f), glm::vec3(dpad, -0.3f, 0.0f));
 		M = Trans*Scale;
@@ -849,37 +1159,66 @@ public:
 		//BRICKS
 		Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.10f, 0.04f, 0.05f));
 
-		int spawnOffset = floor(frameCounter*3);
+		int spawnOffset = floor(frameCounter * 3);
+		if(spawnCounter >= 1.0)
+		{
+			numSpawns++;
+			spawnCounter = 0;
+			addBricks(uBricks);
+			if (numSpawns > 1)
+			{
+				addBricks(lBricks);
+			}
+			if (numSpawns > 2)
+			{
+				addBricks(dBricks);
+			}
+			if (numSpawns > 3)
+			{
+				addBricks(rBricks);
+			}
+		}
 
 		for (int i = 0; i < 6; i++)
 		{
-			for (int j = 0; j < 5 + spawnOffset; j++) //j = 14 is max
+			for (int j = 0; j < 14; j++)
 			{
 				//TOP
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), (0.75f + (.045*j)) - 0.045*spawnOffset, 0.0f));
-				M = Trans*Scale;
-				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				if (uBricks[j][i] == true)
+				{
+					Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), 0.93 - (.045*j), 0.0f));
+					M = Trans*Scale;
+					glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+					glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				}
 
 				//BOTTOM
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), -0.75f - (.045*j) + 0.045*spawnOffset, 0.0f));
-				M = Trans*Scale;
-				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				if (dBricks[j][i] == true)
+				{
+					Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f + (.1*i), -0.93 + (.045*j), 0.0f));
+					M = Trans*Scale;
+					glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+					glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				}
 
 				//LEFT
-				Rotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 0.0f, 1.0f));
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-.75f - (0.045*j) + 0.045*spawnOffset, -.25f + (.1*i), 0.0f));
-				M = Trans*Rotate*Scale;
-				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				if (lBricks[j][i] == true)
+				{
+					Rotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 0.0f, 1.0f));
+					Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-.93f + (0.045*j), -.25f + (.1*i), 0.0f));
+					M = Trans*Rotate*Scale;
+					glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+					glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				}
 
-				//RIGHT
-				Rotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 0.0f, 1.0f));
-				Trans = glm::translate(glm::mat4(1.0f), glm::vec3(.75f + (0.045*j) - 0.045*spawnOffset, .25f - (.1*i), 0.0f));
-				M = Trans*Rotate*Scale;
-				glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				if (rBricks[j][i] == true)
+				{
+					Rotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 0.0f, 1.0f));
+					Trans = glm::translate(glm::mat4(1.0f), glm::vec3(.93f - (0.045*j), 0.25f - (.1*i), 0.0f));
+					M = Trans*Rotate*Scale;
+					glUniformMatrix4fv(brickProg->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+					glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
+				}
 			}
 		}
 
@@ -944,20 +1283,20 @@ int main(int argc, char **argv)
 	Application *application = new Application();
 
 	/* your main will always include a similar set up to establish your window
-		and GL context, etc. */
+	and GL context, etc. */
 	WindowManager * windowManager = new WindowManager();
 	windowManager->init(1500, 1000);
 	windowManager->setEventCallbacks(application);
 	application->windowManager = windowManager;
 
 	/* This is the code that will likely change program to program as you
-		may need to initialize or set up different data and state */
+	may need to initialize or set up different data and state */
 	// Initialize scene.
 	application->init(resourceDir);
 	application->initGeom();
 
 	// Loop until the user closes the window.
-	while(! glfwWindowShouldClose(windowManager->getHandle()))
+	while (!glfwWindowShouldClose(windowManager->getHandle()))
 	{
 		// Render scene.
 		application->render();
